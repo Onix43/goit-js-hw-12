@@ -9,14 +9,11 @@ import 'izitoast/dist/css/iziToast.min.css';
 
 const form = document.querySelector('.form');
 const loadMoreBtn = document.querySelector('.more');
+
 let search = '';
-
 let totalPages = 1;
-
-let paramsSearch = new URLSearchParams({
-  page: 1,
-  per_page: 15,
-});
+let page = 1;
+const perPage = 15;
 
 form.addEventListener('submit', async e => {
   e.preventDefault();
@@ -34,21 +31,18 @@ form.addEventListener('submit', async e => {
     return;
   }
 
-  paramsSearch.set('page', 1);
-
+  page = 1;
   clearGallery();
   hideLoadMoreButton();
   showLoader();
 
   try {
-    const data = await getImageByQuery(search, paramsSearch);
-    totalPages = Math.ceil(
-      data.totalHits / Number(paramsSearch.get('per_page'))
-    );
+    const data = await getImageByQuery(search, page);
+    totalPages = Math.ceil(data.totalHits / perPage);
     hideLoader();
 
-    if (!data || data.hits.length === 0) {
-      iziToast.show({
+    if (!data.hits || data.hits.length === 0) {
+      iziToast.error({
         message:
           ' Sorry, there are no images matching your search query. Please try again!',
         backgroundColor: `#EF4040`,
@@ -58,31 +52,32 @@ form.addEventListener('submit', async e => {
       });
       return;
     }
+
     createGallery(data.hits);
-    showLoadMoreButton();
+
+    if (page < totalPages) {
+      showLoadMoreButton();
+    } else {
+      iziToast.error({
+        position: 'topRight',
+        message: "We're sorry, but you've reached the end of search results.",
+      });
+    }
   } catch (err) {
     hideLoader();
-    console.log(`Error: ${err.message}`);
+    iziToast.error({ message: `Error: ${err.message}`, position: 'topRight' });
   }
 });
 
 loadMoreBtn.addEventListener('click', async e => {
   e.preventDefault();
 
-  let current = Number(paramsSearch.get('page'));
-  if (current >= totalPages) {
-    hideLoadMoreButton();
-    return iziToast.error({
-      position: 'topRight',
-      message: "We're sorry, but you've reached the end of search results.",
-    });
-  }
-  paramsSearch.set('page', current + 1);
-
+  page += 1;
   showLoader();
+  hideLoadMoreButton();
 
   try {
-    const data = await getImageByQuery(search, paramsSearch);
+    const data = await getImageByQuery(search, page);
     hideLoader();
 
     if (!data || data.hits.length === 0) {
@@ -90,13 +85,27 @@ loadMoreBtn.addEventListener('click', async e => {
       return;
     }
     createGallery(data.hits);
-    window.scrollBy({
-      top: 500,
-      behavior: 'smooth',
-    });
-    showLoadMoreButton();
+
+    const element = document.querySelector('.gallery li');
+    if (element) {
+      const scrollDistance = element.getBoundingClientRect();
+      window.scrollBy({
+        top: scrollDistance.height * 2,
+        behavior: 'smooth',
+      });
+    }
+
+    if (page >= totalPages) {
+      hideLoadMoreButton();
+      iziToast.error({
+        message: `We're sorry, but you've reached the end of search results.`,
+        position: 'topRight',
+      });
+    } else {
+      showLoadMoreButton();
+    }
   } catch (err) {
     hideLoader();
-    console.log(`Error: ${err.message}`);
+    iziToast.error({ message: `Error: ${err.message}`, position: 'topRight' });
   }
 });

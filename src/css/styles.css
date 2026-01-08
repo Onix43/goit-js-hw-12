@@ -132,10 +132,11 @@ img {
   border: 5px solid black;
   border-bottom-color: transparent;
   border-radius: 50%;
-  /* display: inline-block; */
   display: none;
   box-sizing: border-box;
   animation: rotation 1s linear infinite;
+  margin-top: 32px;
+  margin-bottom: 42px;
 }
 .more {
   display: none;
